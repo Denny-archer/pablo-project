@@ -28,6 +28,7 @@
     export const specificListMedicines = [
       { value: 'hormonios', label: 'Hormônios' },
       { value: 'tranquilizantes', label: 'Tranquilizantes' },
+      { value: 'nenhum', label: 'Nenhum' },
     ];
 
     
