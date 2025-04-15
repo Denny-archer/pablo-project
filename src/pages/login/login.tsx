@@ -1,17 +1,55 @@
 import { useState, useEffect } from "react";
-import { Container, Button, Card, Spinner, Form, Image } from "react-bootstrap";
+import { Container, Button, Card, Spinner, Form, Image, Alert } from "react-bootstrap";
 import { FaUser, FaEnvelope, FaPhone } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
 import logo from "../../assets/logo.png";
 import "./login.css";
+import { useNavigate } from "react-router-dom";
+import { salvarNoLocalStorage, saveUnicData } from "../../utils/saveLocalStorage";
 
 export function Login() {
   const [showWelcome, setShowWelcome] = useState(true);
+  const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setTimeout(() => setShowWelcome(false), 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const { name, email, phone } = formData;
+
+    if (!name || !email || !phone) {
+      setError("Preencha todos os campos.");
+      setSuccess("");
+      return;
+    }
+
+    const existingUser = localStorage.getItem(`loggedInUser`);
+
+    if (existingUser) {
+      navigate("/gestao-pacientes");
+      setSuccess("");
+      return;
+    }
+
+    salvarNoLocalStorage('user', formData)
+    saveUnicData("loggedInUser", email)
+
+    setSuccess("Login realizado com sucesso!");
+    navigate("/laudo-sarcopenia");
+    setError("");
+
+  };
 
   if (showWelcome) {
     return (
@@ -31,7 +69,7 @@ export function Login() {
         <Card.Body>
           <Card.Title className="fs-3 fw-bold text-primary">Sobre o Projeto</Card.Title>
           <Card.Text className="text-muted">
-            Sistema para cadastro e gestão de pacientes, com emissão de laudos de sarcopenia.
+            Sistema para cadastro e SARCTest, com emissão de Avaliação de sarcopenia.
           </Card.Text>
         </Card.Body>
       </Card>
@@ -39,21 +77,26 @@ export function Login() {
       <Card className="p-4 shadow-lg w-100 login-card">
         <Card.Body>
           <Card.Title className="fs-4 fw-bold text-primary text-center mb-4">Login</Card.Title>
-          <Form>
+
+          {error && <Alert variant="danger">{error}</Alert>}
+          {success && <Alert variant="success">{success}</Alert>}
+
+          <Form onSubmit={handleRegister}>
             <Form.Group className="mb-3 d-flex align-items-center input-group-custom" controlId="formName">
               <FaUser className="me-2 icon-lg text-secondary" />
-              <Form.Control type="text" placeholder="Digite seu nome" />
+              <Form.Control type="text" name="name" value={formData.name} placeholder="Digite seu nome" onChange={handleChange} />
             </Form.Group>
             <Form.Group className="mb-3 d-flex align-items-center input-group-custom" controlId="formEmail">
               <FaEnvelope className="me-2 icon-lg text-secondary" />
-              <Form.Control type="email" placeholder="Digite seu email" />
+              <Form.Control type="email" name="email" value={formData.email} placeholder="Digite seu email" onChange={handleChange} />
             </Form.Group>
             <Form.Group className="mb-4 d-flex align-items-center input-group-custom" controlId="formPhone">
               <FaPhone className="me-2 icon-lg text-secondary" />
-              <Form.Control type="text" placeholder="Digite seu telefone" />
+              <Form.Control type="text" name="phone" value={formData.phone} placeholder="Digite seu telefone" onChange={handleChange} />
             </Form.Group>
             <div className="d-grid">
-              <Button variant="primary" type="submit">Cadastrar</Button>
+              <Button variant="primary" type="submit" className="mb-3">Login</Button>
+              <Button variant="primary" onClick={() => navigate("/cadastro-paciente")}>Cadastre-se</Button>
             </div>
           </Form>
         </Card.Body>

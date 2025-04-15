@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Form, Container, Row, Col } from 'react-bootstrap';
 import '../../styles.css';
-import { RegisterPatient } from '../../api/routesPacientes';
+// import { RegisterPatient } from '../../api/routesPacientes';
 import CheckboxListInput from '../../components/checkbox_list';
 import CheckboxGroup from '../../components/checkbox_group';
 import { personalBackground, listOptions, yesNoOptions, specificListMedicines } from '../../list-option/options';
+import { useNavigate } from 'react-router-dom';
+import { salvarNoLocalStorage, saveUnicData } from '../../utils/saveLocalStorage';
+import { ValidarCPF } from '../../utils/validations';
 
 export function RegistrationPatient() {
   const [name, setName] = useState('');
@@ -36,6 +39,7 @@ export function RegistrationPatient() {
   const handleSelectionChangeVision = (e: string) => setSelectedOptionVision(e);
   const handleSelectionChangeSleep = (e: string) => setSelectedOptionSleep(e);
   
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     selectedOption: '',
@@ -88,13 +92,39 @@ export function RegistrationPatient() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const data = { name, email, phone, birthdate, age, height, cpf, weight };
+    // Todos esses dados tem que estar na tabela
+    const data = {
+      name,
+      email,
+      phone,
+      birthdate,
+      age,
+      height,
+      cpf,
+      weight,
+      sleep: selectedOptionSleep,
+      vision: selectedOptionVision,
+      hearing: selectedOptionHearing,
+      alcoholic: selectedOptionAlcoholic,
+      smoker: selectedOptionSmoker,
+      medicines,
+      specificMedicines: specificMedicines ? specificMedicines.split(',') : [],
+      physicalActivity,
+      fallHistory,
+      reason,
+      location
+    };    
     console.log(data);
     try {
       
-     await  RegisterPatient({data});
+    //  await  RegisterPatient({data});
+      salvarNoLocalStorage('user', data);
+      salvarNoLocalStorage('patient_registration', data);
+      saveUnicData("phoneUser", data.phone);
+     
      alert('Formulário enviado com sucesso!');
     handleReset();
+    navigate('/laudo-sarcopenia');
     } catch (error) {
       console.error('Erro ao enviar o formulário:', error);
       alert('Erro ao enviar o formulário. Tente novamente.');
@@ -110,6 +140,17 @@ export function RegistrationPatient() {
     setHeight('');
     setWeight('');
     setCpf('');
+    setSelectedOptionSleep('');
+    setSelectedOptionVision('');
+    setSelectedOptionHearing('');
+    setSelectedOptionAlcoholic('');
+    setSelectedOptionSmoker('');
+    setMedicines('');
+    setSpecificMedicines('');
+    setPhysicalActivity('');
+    setFallHistory('');
+    setReason('');
+    setLocation('');
     localStorage.removeItem('userFormData');
   };
 
@@ -151,19 +192,24 @@ export function RegistrationPatient() {
         </Row>
 
         <Row className="mb-4">
-          <Col md={6}>
-            <Form.Group controlId="phone">
-              <Form.Label className="form-label">Telefone:</Form.Label>
-              <Form.Control
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Digite o telefone"
-                required
-                className="input-field"
-              />
-            </Form.Group>
-          </Col>
+        <Col md={6}>
+          <Form.Group controlId="phone">
+            <Form.Label className="form-label">Telefone (WhatsApp):</Form.Label>
+            <Form.Control
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Ex: 11991234567"
+              required
+              className="input-field"
+              isInvalid={phone !== '' && !/^\d{11}$/.test(phone)}
+            />
+            <Form.Control.Feedback type="invalid">
+              Informe um número de WhatsApp válido com DDD (ex: 11991234567)
+            </Form.Control.Feedback>
+          </Form.Group>
+        </Col>
+
           <Col md={6}>
             <Form.Group controlId="birthdate">
               <Form.Label className="form-label">Data de Nascimento:</Form.Label>
@@ -174,9 +220,15 @@ export function RegistrationPatient() {
                 placeholder="dd/mm/aaaa"
                 required
                 className="input-field"
+                isInvalid={!!birthdate && new Date(birthdate) > new Date()}
               />
+              <Form.Control.Feedback type="invalid">
+                A data de nascimento não pode ser no futuro.
+              </Form.Control.Feedback>
             </Form.Group>
           </Col>
+
+
         </Row>
 
         <Row className="mb-4">
@@ -222,18 +274,23 @@ export function RegistrationPatient() {
         </Row>
 
         <Row className="mb-4">
-          <Col md={6}>
-            <Form.Group controlId="cpf">
-              <Form.Label className="form-label">Cpf (kg):</Form.Label>
-              <Form.Control
-                type="number"
-                value={cpf}
-                onChange={(e) => setCpf(e.target.value)}
-                placeholder="Cpf"
-                className="input-field"
-              />
-            </Form.Group>
-          </Col>
+        <Col md={6}>
+          <Form.Group controlId="cpf">
+            <Form.Label className="form-label">CPF:</Form.Label>
+            <Form.Control
+              type="text"
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value.replace(/\D/g, ''))}
+              placeholder="Digite o CPF"
+              className="input-field"
+              isInvalid={cpf !== '' && !ValidarCPF(cpf)}
+            />
+            <Form.Control.Feedback type="invalid">
+              CPF inválido. Verifique e tente novamente.
+            </Form.Control.Feedback>
+          </Form.Group>
+        </Col>
+
         </Row>
 
       <CheckboxGroup 
@@ -300,7 +357,7 @@ export function RegistrationPatient() {
             </Form.Group>
 
             <CheckboxListInput
-                label="Medicamentos especificos"
+                label="Medicamentos especificos separe por ,"
                 name="specificMedicines"
                 options={specificListMedicines}
                 selectedValue={specificMedicines}
@@ -325,7 +382,7 @@ export function RegistrationPatient() {
         </h5>
             <CheckboxListInput
                 label="Histórico de Quedas?"
-                name="physicalActivity"
+                name="physicalActivityQ"
                 options={yesNoOptions}
                 selectedValue={fallHistory}
                 onChange={handlesetsetFallHistorychange}
